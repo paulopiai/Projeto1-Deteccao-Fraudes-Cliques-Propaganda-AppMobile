@@ -3,7 +3,8 @@
 </p>
 
 <p align="center">
-  
+  <img src="https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/imagens/ad_fraud.jpg?raw=true" alt="Sublime's custom image"/>
+</p>
 ![alt text](https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/imagens/ad_fraud.jpg)
   
 </p>
