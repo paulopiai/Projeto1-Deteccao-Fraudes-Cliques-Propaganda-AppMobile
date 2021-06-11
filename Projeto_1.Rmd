@@ -1,0 +1,782 @@
+---
+title: "Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile"
+author: "Paulo Henrique Piai"
+date: "22 de dezembro de 2020"
+output: html_document
+---
+
+## 1 - Definindo o problema de negócio:
+#### Prever se o usuário fará o download de um aplicativo ou não após clicar em um anúncio, de modo a prever a ocorrência de fraudes, com base em cliques que não fizeram o download.  
+<br/>
+
+
+
+## 2 - Coleta e visualização dos dados:
+Configurando o diretório de trabalho:
+```{r}
+setwd("C:/Projetos_DataScience/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile")  
+```
+
+Verificar o diretório:
+```{r}
+getwd()
+```
+<br/>
+  
+  
+#### Link para download do dataset:
+[Download do dataset](https://www.kaggle.com/c/talkingdata-adtracking-fraud-detection/data)  
+<br/>
+
+
+Carregando os pacotes:
+```{r, message = FALSE}
+library(data.table)
+library(ggplot2)
+library(corrplot)
+library(dplyr)
+library(lubridate)
+library(gridExtra)
+library(caTools)
+library(caret)
+library(ROSE)
+library(rpart)
+library(randomForest)
+library(C50)
+library(e1071)
+library(knitr)
+library(rmarkdown)
+```
+<br/>
+
+
+Carregando os dados:
+```{r}
+dados <- fread("train_sample.csv", stringsAsFactors = F, sep = ",", header =T)
+```
+<br/>
+
+
+Verificando se há valores missing:
+```{r}
+sum(is.na(dados))
+```
+**Não há valores nulos**
+<br/>
+<br/>
+
+
+Visualizando os dados:
+```{r}
+kable(head(dados, 10))
+str(dados)
+```
+<br/>  
+
+
+#### Dicionário dos dados:
+* **ip**: ip address of click.  
+* **app**: app id for marketing.  
+* **device**: device type id of user mobile phone (e.g., iphone 6 plus, iphone 7, huawei mate 7, etc.)  
+* **os**: os version id of user mobile phone  
+* **channel**: channel id of mobile ad publisher  
+* **click_time**: timestamp of click (UTC)  
+* **attributed_time**: if user download the app for after clicking an ad, this is the time of the app download  
+* **is_attributed**: the target that is to be predicted, indicating the app was downloaded  
+<br/>
+**Note that ip, app, device, os, and channel are encoded.**
+<br/>  
+<br/>  
+
+
+
+## 3 - Pré processamento dos dados:  
+Modificando as variaveis de tempo para o formato correto:
+```{r}
+dados$click_time = ymd_hms(dados$click_time) 
+dados$attributed_time = ymd_hms(dados$attributed_time)
+```
+<br/>  
+
+Modificando a variável is_attributed para fator, necessário para criar o modelo de classificação:
+```{r}
+dados$is_attributed <- as.factor(dados$is_attributed)
+```
+<br/>  
+
+
+Visualizando o novo formato das variáveis:
+```{r}
+str(dados)
+```
+<br/>  
+
+
+Verificando se há valores missing após a transformação dos dados:
+```{r}
+sum(is.na(dados))
+```
+<br/>  
+
+
+Retirando a coluna attributed_time do dataset por ter muitos valores NA:
+```{r}
+dados$attributed_time <- NULL
+```
+<br/>  
+  
+
+
+
+## 4 - Análise exploratória:
+#### Verificando a quantidade de valores unicos:
+```{r}
+kable(sapply(dados, function(x) length(unique(x))) %>% 
+  sort(decreasing = TRUE))
+```
+<br/>  
+
+#### Verificando a quantidade de cliques do mesmo IP:
+```{r}
+ip <- dados$ip %>%
+  table() %>%                   # Verifica a quantidade de valores unicos
+  sort(decreasing = TRUE) %>%   # Ordena por ordem decrescente
+  head(n = 10L) %>%             # Exibe os 10 IPs que mais fizeram cliques
+  as.data.frame()               # Converte para formato data.frame
+colnames(ip) <- c('ip_x', 'ip_y')
+
+graph1 <- ggplot(ip, aes(x = ip_x, y = ip_y)) +
+  geom_bar(stat="identity", fill = 'steelblue4') +
+  ggtitle("IPs que mais clicaram em anuncios")+
+  xlab("Endereço IP") + 
+  ylab("Numero de cliques")
+graph1
+
+```
+<br/>  
+<br/>  
+
+
+#### Verificando os apps mais acessados:
+```{r}
+app <- dados$app %>%
+  table() %>%                   # Verifica a quantidade de valores unicos
+  sort(decreasing = TRUE) %>%   # Ordena por ordem decrescente
+  head(n = 10L) %>%             # Exibe os 10 apps mais acessados
+  as.data.frame()               # Converte para formato data.frame
+colnames(app) <- c('app_x', 'app_y')
+
+graph2 <- ggplot(app, aes(x = app_x, y = app_y)) +
+  geom_bar(stat="identity", fill = 'steelblue4') +
+  ggtitle("Apps mais acessados")+
+  xlab("App") + 
+  ylab("Quantidade")
+graph2
+```
+<br/>  
+<br/>  
+
+
+#### Verificando os dispositivos mais usados:
+```{r}
+device <- dados$device %>%
+  table() %>%                   # Verifica a quantidade de valores unicos
+  sort(decreasing = TRUE) %>%   # Ordena por ordem decrescente
+  head(n = 5L) %>%              # Exibe os 5 dispositivos mais usados
+  as.data.frame()               # Converte para formato data.frame
+colnames(device) <- c('device_x', 'device_y')
+
+graph3 <- ggplot(device, aes(x = device_x, y = device_y)) +
+  geom_bar(stat="identity", fill = 'steelblue4') +
+  ggtitle("Dispositivo mais usado")+
+  xlab("Dispositivo") + 
+  ylab("Quantidade")
+graph3
+```
+<br/>  
+<br/>  
+
+
+#### Verificando o sistema operacional mais usados:
+```{r}
+os <- dados$os %>%
+  table() %>%                   # Verifica a quantidade de valores unicos
+  sort(decreasing = TRUE) %>%   # Ordena por ordem decrescente
+  head(n = 10L) %>%             # Exibe os 10 SO mais usados
+  as.data.frame()               # Converte para formato data.frame
+colnames(os) <- c('os_x', 'os_y')
+
+graph4 <- ggplot(os, aes(x = os_x, y = os_y)) +
+  geom_bar(stat="identity", fill = 'steelblue4') +
+  ggtitle("S.O. mais usado")+
+  xlab("S.O") + 
+  ylab("Quantidade")
+graph4
+```
+<br/>  
+<br/>  
+
+
+#### Verificando o canal mais usados:
+```{r}
+channel <- dados$channel %>%
+  table() %>%                   # Verifica a quantidade de valores unicos
+  sort(decreasing = TRUE) %>%   # Ordena por ordem decrescente
+  head(n = 10L) %>%             # Exibe os 10 canais mais utilizados
+  as.data.frame()               # Converte para formato data.frame
+colnames(channel) <- c('ch_x', 'ch_y')
+
+graph5 <- ggplot(channel, aes(x = ch_x, y = ch_y)) +
+  geom_bar(stat="identity", fill = 'steelblue4') +
+  ggtitle("Canais mais utilizados")+
+  xlab("Canais") + 
+  ylab("Quantidade")
+graph5
+```
+<br/>  
+<br/>  
+
+
+#### Plotando os gráficos simultaneos:
+```{r}
+grid.arrange(graph1, graph2, graph3, graph4, graph5)
+```
+<br/>  
+<br/>  
+
+
+
+#### Verificando o balanceamento dos dados:
+```{r}
+prop.table(table(dados$is_attributed))*100
+```
+
+Verificando o resultado graficamente:
+```{r}
+barplot(table(dados$is_attributed),
+        main = "Balanceamento dos dados",
+        xlab = '0 = Não fez dowload    1 = Fez download',
+        ylab = 'Quantidade',
+        ylim = c (0,100e3))
+```
+  
+##### **Mais de 99% dos dados é referente a IPs que não fizeram o download do app. Ou seja, a classe está completamente desbalanceada.**
+<br/>  
+
+
+
+#### Verificando a correlação entre os dados:
+Transformando as variáveis para numeric:
+```{r}
+dados_cor <- dados %>%
+  mutate_if(is.factor, as.integer)
+```
+
+Plotando a matriz de correlação:  
+```{r}
+cor(dados_cor[, -c('click_time')]) %>%
+  cor(method = 'spearman') %>%
+  corrplot(method = 'number', diag = FALSE, type = 'lower')
+```
+  
+  
+##### **O IP apresenta uma correlação positiva de 66% com a variável target.**
+<br/>  
+
+
+#### Verificando o padrão cliques e download por horario:
+```{r}
+dados_time <- dados[, c('click_time','is_attributed')]
+str(dados_time)
+kable(head(dados_time))
+```
+<br/>  
+
+Verificando o numero de cliques para cada hora:
+```{r}
+hora <- hour(dados_time$click_time)
+
+numero_cliques <- dados_time[, .N, by = hora]
+numero_cliques
+
+# Plotando gráfico de numero de cliques por hora:
+graph6 <- ggplot(numero_cliques, aes(x = hora, y = N)) +
+  geom_bar(stat="identity", fill="steelblue4")+
+  ggtitle("Numero de cliques por hora")+
+  xlab("Hora") + 
+  ylab("Numero de cliques")
+graph6
+```
+<br/>  
+
+
+Verificando o numero de download para cada hora:
+```{r}
+dados_time$hora <- hour(dados_time$click_time)
+numero_download <- dados_time[is_attributed == 1, .N,
+                              by = c('hora','is_attributed')]
+numero_download
+
+# Plotando gráfico de numero de cliques por hora:
+graph7 <- ggplot(numero_download, aes(x = hora, y = N)) +
+  geom_bar(stat="identity", fill="steelblue4")+
+  ggtitle("Numero de dowload por hora")+
+  xlab("Hora") + 
+  ylab("Quantidade de dowload")
+graph7
+```
+<br/>  
+
+
+Plotando os dois gráficos simultaneos:  
+```{r}
+grid.arrange(graph6, graph7)
+```
+  
+#### **O menor numero de cliques ocorre proximo das 20hrs. O numero de downloads segue o mesmo padrão.**  
+<br/>  
+
+
+## 5 - Construção do modelo preditivo:
+Dividindo os dados em treino (70%) e teste (30%)
+```{r}
+set.seed(0)
+amostra <- sample.split(dados$is_attributed, SplitRatio = 0.7)
+dados_treino <- subset(dados, amostra == TRUE)
+dados_teste <- subset(dados, amostra == FALSE)
+```
+<br/>  
+
+Visualisando o formato dos dodos:  
+```{r}
+str(dados_treino)
+str(dados_teste)
+```
+<br/>  
+
+Verificando a proporção dos dados de treino e teste:
+```{r}
+prop.table(table(dados_treino$is_attributed))*100
+prop.table(table(dados_teste$is_attributed))*100
+```
+<br/>  
+
+
+Criando o modelo sem balanceamento dos dados:  
+```{r}
+modelo1 <- rpart (data = dados_treino,
+                is_attributed ~ .,
+                control = rpart.control(cp = .0005))
+print(modelo1)
+```
+<br/>  
+
+Previsão:  
+```{r}
+previsao1 <- predict(modelo1, dados_teste, type = 'class')
+```
+<br/>  
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao1, dados_teste$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste$is_attributed, previsao1, plotit = T, col = "red")
+```
+<br/>  
+
+
+#### **Acurácia** = 0.9979
+#### **Score AUC** = 0.603
+
+#### **Se analisarmos apenas a acuracia do modelo, estaria excelente (99%).Mais analisando a curva AUC, temos o valor de 0.603. Podemos melhorar o modelo balanceando os dados.**
+<br/>  
+
+
+## 6 - Balanceando os dados para criação do modelo:
+#### Aplicando ROSE em dados de treino e teste e checando a proporção de classes.
+Alterando o tipo da variavél click_time para numérica:  
+```{r}
+dados_treino$click_time <- as.numeric(dados_treino$click_time)
+dados_teste$click_time <- as.numeric(dados_teste$click_time)
+```
+<br/>  
+
+
+Verificando os dados:  
+```{r}
+str(dados_treino)
+str(dados_teste)
+```
+<br/>  
+
+
+Balanceando os dados de treino:  
+```{r}
+rose_treino <- ROSE(is_attributed ~.,
+                    data = dados_treino, seed = 1)$data
+prop.table(table(rose_treino$is_attributed))*100
+```
+**Agora os dados estão com uma proporção de ~50% para as duas classes.**  
+<br/>  
+
+Balanceando os dados de teste:
+```{r}
+rose_teste <- ROSE(is_attributed ~.,
+                    data = dados_teste, seed = 1)$data
+prop.table(table(rose_teste$is_attributed))*100
+```
+**Agora os dados estão com uma proporção de ~50% para as duas classes.**  
+<br/>  
+
+Criando um novo modelo com os dados balanceados:  
+```{r}
+modelo2 <- rpart (data = rose_treino,
+                  is_attributed ~ .,
+                  control = rpart.control(cp = .0005))
+```
+<br/>  
+
+Previsão:  
+```{r}
+previsao2 <- predict(modelo2, rose_teste, type = 'class')
+```
+<br/>  
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao2, rose_teste$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(rose_teste$is_attributed, previsao2, plotit = T, col = "red")
+```
+<br/>  
+
+#### **Acurácia** = 0.8651
+#### **Score AUC** = 0.865  
+  
+  
+#### **Diminuimos a acuracia do modelo, porém, o score AUC aumentou significativamente. Portanto, o modelo2 é melhor que o modelo1, indicando que os dados precisam estar balanceados para uma melhor performance do modelo.**
+<br/>  
+
+## 7 - Otimizando o modelo:  
+### 7.1 - Verificando outros métodos de balanceamento dos dados:  
+#### 7.1.1 - Over sampling:  
+Balanceando dos dados de treino:  
+```{r}
+dados_treino_over <- ovun.sample(is_attributed ~ ., data = dados_treino, 
+                          method = "over")$data
+prop.table(table(dados_treino_over$is_attributed))*100
+```
+<br/>  
+
+Balanceando os dados de teste:  
+```{r}
+dados_teste_over <- ovun.sample(is_attributed ~ ., data = dados_teste, 
+                                method = "over")$data
+prop.table(table(dados_teste_over$is_attributed))*100
+```
+<br/>  
+
+
+Criando um novo modelo com os dados balanceados:  
+```{r}
+modelo3 <- rpart (data = dados_treino_over,
+                  is_attributed ~ .,
+                  control = rpart.control(cp = .0005))
+```
+<br/>  
+
+
+Previsão:  
+```{r}
+previsao3 <- predict(modelo3, dados_teste_over, type = 'class')
+```
+<br/>  
+
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao3, dados_teste_over$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste_over$is_attributed, previsao3, plotit = T, col = "red")
+```
+<br/>  
+
+
+#### **Acurácia** = 0.9319  
+#### **Score AUC** = 0.932  
+<br/>  
+
+#### 7.1.2 -  Under sampling:
+Balanceando dos dados de treino:  
+```{r}
+dados_treino_under <- ovun.sample(is_attributed ~ ., data = dados_treino, 
+                                 method = "under")$data
+prop.table(table(dados_treino_under$is_attributed))*100
+```
+<br/>  
+
+
+Balanceando os dados de teste:  
+```{r}
+dados_teste_under <- ovun.sample(is_attributed ~ ., data = dados_teste, 
+                                method = "under")$data
+prop.table(table(dados_teste_under$is_attributed))*100
+```
+<br/>  
+
+
+Criando um novo modelo com os dados balanceados:  
+```{r}
+modelo4 <- rpart (data = dados_treino_under,
+                  is_attributed ~ .,
+                  control = rpart.control(cp = .0005))
+```
+<br/>  
+
+
+Previsão:  
+```{r}
+previsao4 <- predict(modelo4, dados_teste_under, type = 'class')
+```
+<br/>  
+
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao4, dados_teste_under$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste_under$is_attributed, previsao4, plotit = T, col = "red")
+```
+<br/>  
+
+#### **Acurácia** = 0.9111
+#### **Score AUC** = 0.911
+<br/>  
+
+
+#### 7.1.3 -  Both sampling:
+Balanceando dos dados de treino:  
+```{r}
+dados_treino_both <- ovun.sample(is_attributed ~ ., data = dados_treino, 
+                                  method = "both")$data
+prop.table(table(dados_treino_both$is_attributed))*100
+```
+<br/>  
+
+
+Balanceando os dados de teste:  
+```{r}
+dados_teste_both <- ovun.sample(is_attributed ~ ., data = dados_teste, 
+                                 method = "both")$data
+prop.table(table(dados_teste_both$is_attributed))*100
+```
+<br/>  
+
+
+Criando um novo modelo com os dados balanceados:  
+```{r}
+modelo5 <- rpart (data = dados_treino_both,
+                  is_attributed ~ .,
+                  control = rpart.control(cp = .0005))
+```
+<br/>  
+
+
+Previsão:  
+```{r}
+previsao5 <- predict(modelo5, dados_teste_both, type = 'class')
+```
+<br/>  
+
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao5, dados_teste_both$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste_both$is_attributed, previsao5, plotit = T, col = "red")
+```
+<br/>  
+
+
+#### **Acurácia** = 0.931
+#### **Score AUC** = 0.931
+<br/>  
+
+
+### **Score dos 4 modelos de balanceamento:**  
+#### **ROSE =**  
+    Acurácia = 0.8651  
+    Score AUC = 0.865  
+<br/>  
+
+#### **OVER SAMPLING = **  
+    Acurácia = 0.9319  
+    Score AUC = 0.932  
+<br/>  
+
+#### **UNDER SAMPLING = **  
+    Acurácia = 0.9111  
+    Score AUC = 0.911  
+<br/>  
+
+#### **BOTH SAMPLING = **  
+    Acurácia = 0.93  
+    Score AUC = 0.931  
+<br/>  
+
+
+#### **O balanceamento utilizando over sampling e both sampling apresentaram um melhor resultado, com valores proximos um do outro, porém, o balanceamento, utilizando over sampling não diminui tanto o tamanho do dataset em relação aos demais métodos de balanceamento, por isso, será utilizado o modelo de over sampling.**
+<br/>  
+
+
+
+### 7.2 - Testando outros algoritmos de classificação:  
+```{r}
+str(dados_teste_over)
+str(dados_treino_over)
+```
+<br/>  
+
+#### 7.2.1 - Utilizando o random forest:  
+Criando o modelo:  
+```{r}
+modelo6 <- randomForest(data = dados_treino_over,
+                  is_attributed ~ .,
+                  ntree = 100,
+                  nodesize = 10)
+print(modelo6)
+```
+<br/>  
+
+
+Previsão:  
+```{r}
+previsao6 <- predict(modelo6, dados_teste_over, type = 'class')
+```
+<br/>  
+
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao6, dados_teste_over$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste_over$is_attributed, previsao6, plotit = T, col = "red")
+```
+<br/>  
+
+#### **Acurácia** = 0.670  
+#### **Score AUC** = 0.67  
+<br/>  
+
+
+#### 7.2.2 - Utilizando o C50:  
+Criando o modelo:  
+```{r}
+modelo7 <- C5.0(data = dados_treino_over,
+                        is_attributed ~ .)
+```
+<br/>  
+
+print(modelo7)
+
+Previsão:  
+```{r}
+previsao7 <- predict(modelo7, dados_teste_over, type = 'class')
+```
+<br/>  
+
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao7, dados_teste_over$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste_over$is_attributed, previsao7, plotit = T, col = "red")
+```
+<br/>  
+
+#### **Acurácia** = 0.7982  
+#### **Score AUC** = 0.798  
+<br/>  
+
+
+
+#### 7.2.3 - Utilizando o NaiveBayes:  
+Criando o modelo:  
+```{r}
+modelo8 <- naiveBayes(data = dados_treino_over,
+                is_attributed ~ .)
+print(modelo8)
+```
+<br/>  
+
+
+Previsão:  
+```{r}
+previsao8 <- predict(modelo8, dados_teste_over, type = 'class')
+```
+<br/>  
+
+
+Criando uma confusion matrix:  
+```{r}
+caret::confusionMatrix(previsao8, dados_teste_over$is_attributed,
+                       positive = '1')
+```
+<br/>  
+
+
+Criando a Curva ROC para encontrar a métrica AUC:  
+```{r}
+roc.curve(dados_teste_over$is_attributed, previsao8, plotit = T, col = "red")
+```
+<br/>  
+
+#### **Acurácia** = 0.7761
+#### **Score AUC** = 0.776
+<br/>  
+
+## **Conclusão:**  
+### O melhor resultado foi utilizando o algoritmo RPART com os dados balanceados pelo algoritmo ROSE, utilizando o método de Over Sampling. Nessas condições, foi obtido uma acurácia de 93,19% e um Score AUC de 93,20%.
+<br/>  
+<br/>  
