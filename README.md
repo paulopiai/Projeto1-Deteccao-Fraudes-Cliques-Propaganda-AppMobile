@@ -1,4 +1,4 @@
-# <i>Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile</i>
+# <p align="center"> <i>Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile</i></p>
 
 
 <p align="center">
