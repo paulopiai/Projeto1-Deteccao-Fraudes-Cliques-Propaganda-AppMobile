@@ -1,4 +1,5 @@
 # Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile
+<h1 style="font-size:60px; color:DarkBlue;"><i><center>Prevendo Customer Churn em Operadoras de Telecom</center></i></h1>
 <i>22 de dezembro, 2020</i>
 
 ![alt text](https://m.media-amazon.com/images/G/01/DeveloperBlogs/AppstoreBlogs/Influencerblogs/scalar-image-mobileadfraud-0522._CB477548594_.jpg?t=true)
