@@ -1,3 +1,7 @@
+<p align="center">
+    // Your content
+</p>
+
 # <i>Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile</i>
 
 ![alt text](https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/imagens/ad_fraud.jpg)
