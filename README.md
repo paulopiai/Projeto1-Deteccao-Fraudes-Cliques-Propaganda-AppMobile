@@ -7,3 +7,6 @@ O risco de fraude está em toda parte, mas para as empresas que anunciam online,
 A TalkingData (https://www.talkingdata.com), a maior plataforma de Big Data independente da China, cobre mais de 70% dos dispositivos móveis ativos em todo o país. Eles lidam com 3 bilhões de cliques por dia, dos quais 90% são potencialmente fraudulentos. Sua abordagem atual para impedir fraudes de cliques para desenvolvedores de aplicativos é medir a jornada do clique de um usuário em todo o portfólio e sinalizar endereços IP que produzem muitos cliques, mas nunca acabam instalando aplicativos. Com essas informações, eles criaram uma lista negra de IPs e uma lista negra de dispositivos.
 
 <b>Objetivo:</b> O projeto tem como objetivo construir um modelo de aprendizado de máquina para determinar se um clique é fraudulento ou não, utilizando <b>linguagem R</b> e o dataset em anexo no repositório.
+
+# Para visualizar a análise acesse o link:
+https://htmlpreview.github.io/?https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/Projeto_1.html
