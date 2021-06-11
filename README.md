@@ -12,5 +12,5 @@ A TalkingData (https://www.talkingdata.com), a maior plataforma de Big Data inde
 
 
 
-Para visualizar a análise completa feita neste projeto, acesse este link:
+<b>Para visualizar a análise completa feita neste projeto, acesse este link:</b><br>
 https://htmlpreview.github.io/?https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/Projeto_1.html
