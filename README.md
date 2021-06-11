@@ -1,6 +1,6 @@
 # <i>Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile</i>
 
-![alt text](https://displayadsdeepdive.com/wp-content/uploads/2020/10/displayadsdeepdive.com-the-countless-types-of-ad-fraud-the-countless-types-of.png)
+![alt text](https://uploads-ssl.webflow.com/6006d8d2443168e0a2c4d4ef/60101daa6d50225b204f5967_post-blog-%E2%80%93-3-930x620.jpg_1.jpg)
 
 O risco de fraude está em toda parte, mas para as empresas que anunciam online, a fraude de cliques pode acontecer em um volume avassalador, resultando em dados de cliques enganosos e dinheiro desperdiçado. Os canais de anúncios podem aumentar os custos simplesmente quando pessoas ou bots clicam nos anúncios em grande escala, o que na prática não gera o resultado esperado. Com mais de 1 bilhão de dispositivos móveis em uso todos os meses, a China é o maior mercado móvel do mundo e, portanto, sofre com grandes volumes de tráfego fraudulento.
 
