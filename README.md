@@ -8,5 +8,6 @@ A TalkingData (https://www.talkingdata.com), a maior plataforma de Big Data inde
 
 <b>Objetivo:</b> O projeto tem como objetivo construir um modelo de aprendizado de máquina para determinar se um clique é fraudulento ou não, utilizando <b>linguagem R</b> e o dataset em anexo no repositório.
 <br><br>
-### Para visualizar a análise completa feita neste projeto, acesse este link:
-https://htmlpreview.github.io/?https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/Projeto_1.html
+
+Para visualizar a análise completa feita neste projeto, acesse este link:
+<li> https://htmlpreview.github.io/?https://github.com/paulopiai/Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile/blob/main/Projeto_1.html
