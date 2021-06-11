@@ -1,2 +1,2 @@
-# Projeto1-Deteccao-Fraudes-Cliques-Propaganda-AppMobile
-O repositório contém uma análise utilizando linguagem R para detectar fraudes no tráfego de cliques em propagandas de aplicações Mobile
+# Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile
+O repositório contém uma análise utilizando linguagem R para detectar fraudes no tráfego de cliques em propagandas de aplicações Mobile, avaliando se o usuário fará o download de um aplicativo ou não após clicar em um anúncio, de modo a prever a ocorrência de fraudes, com base em cliques que não fizeram o download.
