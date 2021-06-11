@@ -1,4 +1,4 @@
-# Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile
+# <font color='DarkBlue'> Projeto1 - Detecção de Fraudes no Tráfego de Cliques em Propagandas de Aplicações Mobile
 <h1 style="font-size:60px; color:DarkBlue;"><i><center>Prevendo Customer Churn em Operadoras de Telecom</center></i></h1>
 <i>22 de dezembro, 2020</i>
 
